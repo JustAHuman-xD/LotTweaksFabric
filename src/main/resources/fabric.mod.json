@@ -9,40 +9,29 @@
     "LOTqwerty",
     "Aruma256"
   ],
-  "contact": {
-    "homepage": "https://www.curseforge.com/minecraft/mc-mods/lottweaks"
-  },
 
   "license": "",
   "icon": "assets/lottweaks/icon.png",
-
   "environment": "*",
+
   "entrypoints": {
     "client": [
       "com.github.lotqwerty.lottweaks.client.LotTweaks"
     ]
   },
+
   "mixins": [
-    {
-      "config": "lottweaks.client.mixins.json",
-      "environment": "client"
-    }
+    "lottweaks.client.mixins.json"
   ],
 
-	"depends": {
-		"fabricloader": ">=0.15.7",
-		"minecraft": "~1.20.4",
-		"java": ">=17",
-		"fabric-api": "*"
-	},
+  "depends": {
+    "fabricloader": ">=0.15.7",
+    "minecraft": "~1.20.4",
+    "java": ">=17",
+    "fabric-api": "*"
+  },
+
   "suggests": {
     "another-mod": "*"
-  },
-  "custom": {
-    "modmenu": {
-      "links": {
-        "modmenu.discord": "https://discord.gg/sEvqhB86mM"
-      }
-    }
   }
 }
