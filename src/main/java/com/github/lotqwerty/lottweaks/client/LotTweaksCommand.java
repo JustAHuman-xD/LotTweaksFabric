@@ -2,32 +2,26 @@ package com.github.lotqwerty.lottweaks.client;
 
 import java.util.StringJoiner;
 
-import com.github.lotqwerty.lottweaks.LotTweaks;
 import com.github.lotqwerty.lottweaks.client.RotationHelper.Group;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
-import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
 
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.commands.CommandSourceStack;
-import net.minecraft.commands.Commands;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.ChatType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 @Environment(EnvType.CLIENT)
 public class LotTweaksCommand implements ClientCommandRegistrationCallback {
@@ -50,10 +44,6 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 			)
 		;
 		dispatcher.register(builder);
-	}
-
-	private static LiteralArgumentBuilder<FabricClientCommandSource> literal(String string) {
-		return ClientCommandManager.literal(string);
 	}
 
 	private void executeAdd(Group group) throws LotTweaksCommandRuntimeException {
@@ -101,7 +91,7 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 		} catch (LotTweaksCommandRuntimeException e) {
 			displayMessage(Component.literal(ChatFormatting.RED + e.getMessage()));
 		}
-		LotTweaksClient.showErrorLogToChat();
+		com.github.lotqwerty.lottweaks.client.LotTweaks.showErrorLogToChat();
 	}
 
 	private static final class LotTweaksCommandRuntimeException extends RuntimeException {

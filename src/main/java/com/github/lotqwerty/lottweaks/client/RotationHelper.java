@@ -14,12 +14,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.StringJoiner;
 
-import com.github.lotqwerty.lottweaks.LotTweaks;
-
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.core.Registry;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 
@@ -329,7 +326,7 @@ public class RotationHelper {
 				}
 			}
 		} catch (Exception e) {
-			LotTweaks.LOGGER.error(e);
+			LotTweaks.LOGGER.error("", e);
 			return false;
 		}
 		getItemChain(group).clear();

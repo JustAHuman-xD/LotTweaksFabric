@@ -2,22 +2,20 @@ package com.github.lotqwerty.lottweaks.client.keys;
 
 import java.util.List;
 
-import com.github.lotqwerty.lottweaks.LotTweaks;
 import com.github.lotqwerty.lottweaks.client.RotationHelper;
 import com.github.lotqwerty.lottweaks.client.RotationHelper.Group;
 import com.github.lotqwerty.lottweaks.client.renderer.LTRenderer;
-import com.github.lotqwerty.lottweaks.fabric.RenderHotbarEvent;
-import com.github.lotqwerty.lottweaks.fabric.RenderHotbarEvent.RenderHotbarListener;
-import com.github.lotqwerty.lottweaks.fabric.ScrollEvent;
-import com.github.lotqwerty.lottweaks.fabric.ScrollEvent.ScrollListener;
 
+import com.mojang.blaze3d.platform.Window;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 
 @Environment(EnvType.CLIENT)
-public class RotateKey extends ItemSelectKeyBase implements ScrollListener, RenderHotbarListener {
+public class RotateKey extends ItemSelectKeyBase {
 
 	private int phase = 0;
 
@@ -34,11 +32,7 @@ public class RotateKey extends ItemSelectKeyBase implements ScrollListener, Rend
 	}
 
 	private Group getGroup() {
-		if (LotTweaks.CONFIG.SNEAK_TO_SWITCH_GROUP) {
-			return (!Minecraft.getInstance().player.isShiftKeyDown()) ? Group.PRIMARY : Group.SECONDARY;
-		} else {
-			return this.phase==0 ? Group.PRIMARY : Group.SECONDARY;
-		}
+		return this.phase==0 ? Group.PRIMARY : Group.SECONDARY;
 	}
 
 	@Override
@@ -65,51 +59,40 @@ public class RotateKey extends ItemSelectKeyBase implements ScrollListener, Rend
 		super.onKeyReleased();
 	}
 
-	@Override
-	public void onScroll(ScrollEvent event) {
-		if (this.pressTime == 0) {
-			return;
-		}
+	public boolean onScroll(double scrollAmount) {
 		Minecraft mc = Minecraft.getInstance();
-		if (!mc.player.isCreative()) {
-			return;
+		if (this.pressTime == 0 || scrollAmount == 0 || !mc.player.isCreative()) {
+			return false;
 		}
-		if (event.isCanceled()) {
-			return;
-		}
-		double wheel = event.getScrollDelta();
-		if (wheel == 0) {
-			return;
-		}
-		event.setCanceled(true);
+
 		if (candidates.isEmpty()) {
-			return;
+			return true;
 		}
-		if (wheel > 0) {
+		if (scrollAmount > 0) {
 			this.rotateCandidatesForward();
-		}else {
+		} else {
 			this.rotateCandidatesBackward();
 		}
 		this.updateCurrentItemStack(candidates.getFirst());
+		return true;
 	}
 
-	@Override
-	public void onRenderHotbar(RenderHotbarEvent event) {
-		float partialTicks = event.getPartialTicks();
+	public void onRenderHotbar(float partialTicks, GuiGraphics graphics) {
 		if (this.pressTime == 0) {
 			candidates.clear();
 			return;
 		}
-		if (!Minecraft.getInstance().player.isCreative()) {
+
+		Minecraft minecraft = Minecraft.getInstance();
+		Player player = minecraft.player;
+		if (!player.isCreative() || candidates.isEmpty()) {
 			return;
 		}
-		if (candidates.isEmpty()) {
-			return;
-		}
-		int x = Minecraft.getInstance().getWindow().getGuiScaledWidth() / 2 - 90 + Minecraft.getInstance().player.getInventory().selected * 20 + 2;
-		int y = Minecraft.getInstance().getWindow().getGuiScaledHeight() - 16 - 3;
-		y -= 50 + (20 + candidates.size());
-		LTRenderer.renderItemStacks(event.getGuiGraphics(), candidates, x, y, pressTime, partialTicks, lastRotateTime, rotateDirection);
+
+		Window window = minecraft.getWindow();
+		int x = window.getGuiScaledWidth() / 2 - 90 + player.getInventory().selected * 20 + 2;
+		int y = window.getGuiScaledHeight() - 16 - 3 - 50 + (20 + candidates.size());
+		LTRenderer.renderItemStacks(graphics, candidates, x, y, pressTime, partialTicks, lastRotateTime, rotateDirection);
 	}
 
 }

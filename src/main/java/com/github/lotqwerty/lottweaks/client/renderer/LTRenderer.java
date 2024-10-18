@@ -2,10 +2,8 @@ package com.github.lotqwerty.lottweaks.client.renderer;
 
 import java.util.Collection;
 
-import com.github.lotqwerty.lottweaks.LotTweaks;
 import com.mojang.blaze3d.systems.RenderSystem;
 
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.world.item.ItemStack;
 
@@ -34,10 +32,6 @@ public final class LTRenderer {
 	}
 
 	private static void circular(GuiGraphics guiGraphics, Collection<ItemStack> stacks, int x, int y, int t, float pt, int lt, byte direction) {
-		if (LotTweaks.CONFIG.DISABLE_ANIMATIONS) {
-			t = Integer.MAX_VALUE;
-			pt = 0;
-		}
 		double max_r = 20 + stacks.size() * 1.2;
 		double r = max_r * Math.tanh((t + pt) / 3);
 		double afterimage = 1 - Math.tanh((t + pt - lt)/1.5);
