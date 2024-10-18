@@ -26,7 +26,7 @@ import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.lit
 
 @Environment(EnvType.CLIENT)
 public class LotTweaksCommand implements ClientCommandRegistrationCallback {
-	private static final String[] ACTIONS = { "include", "includeAll", "exclude", "excludeAll", "retain", "retainAll" };
+	private static final String[] ACTIONS = { "include", "includeHotbar", "includeAll", "exclude", "excludeHotbar", "excludeAll", "retain", "retainHotbar", "retainAll" };
 
 	@Override
 	public void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
