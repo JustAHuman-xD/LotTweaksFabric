@@ -20,25 +20,14 @@ public class ItemSelectKeyBase extends LTKeyBase {
 		super(description, keyCode, category);
 	}
 
-	protected void addToCandidatesWithDedup(ItemStack itemStack) {
-		for (ItemStack c: candidates) {
-			if (ItemStack.areEqual(c, itemStack)) {
-				return;
-			}
-		}
-		candidates.add(itemStack);
-	}
-	
-	protected void rotateCandidatesForward() {
-		candidates.addFirst(candidates.pollLast());
-		this.updateLastRotateTime();
-		this.rotateDirection = 1;
-	}
-
-	protected void rotateCandidatesBackward() {
-		candidates.addLast(candidates.pollFirst());
-		this.updateLastRotateTime();
-		this.rotateDirection = -1;
+	protected void rotateCandidates(boolean forward) {
+        if (forward) {
+            candidates.addFirst(candidates.pollLast());
+        } else {
+            candidates.addLast(candidates.pollFirst());
+        }
+        this.updateLastRotateTime();
+		this.rotateDirection = (byte) (forward ? 1 : -1);
 	}
 
 	protected void updateCurrentItemStack(ItemStack itemStack) {

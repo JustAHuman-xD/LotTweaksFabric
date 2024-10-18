@@ -10,8 +10,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(InGameHud.class)
 public class HudMixin {
-	@Inject(at = @At("TAIL"), method = "renderHotbar")
-	private void renderHotbar(DrawContext context, float tickDelta, CallbackInfo ci) {
-		LotTweaks.ROTATE_KEY.onRenderHotbar(context, tickDelta);
+	@Inject(at = @At("TAIL"), method = "renderCrosshair")
+	private void renderCrosshair(DrawContext context, float tickDelta, CallbackInfo ci) {
+		LotTweaks.ROTATE_KEY.render(context, tickDelta);
 	}
 }

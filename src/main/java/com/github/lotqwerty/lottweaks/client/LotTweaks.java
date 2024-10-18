@@ -23,8 +23,7 @@ public class LotTweaks implements ClientModInitializer {
 
 	@Override
 	public void onInitializeClient() {
-		RotationHelper.loadAllFromFile();
-		RotationHelper.loadAllItemGroupFromStrArray();
+		RotationHelper.load();
 		ClientCommandRegistrationCallback.EVENT.register(new LotTweaksCommand());
 		ClientTickEvents.END_CLIENT_TICK.register(ROTATE_KEY);
 	}

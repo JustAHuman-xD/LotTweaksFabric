@@ -1,102 +1,210 @@
 package com.github.lotqwerty.lottweaks.client;
 
-import java.util.StringJoiner;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
-import com.github.lotqwerty.lottweaks.client.RotationHelper.Group;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.arguments.IntegerArgumentType;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 
+import com.mojang.brigadier.suggestion.Suggestions;
+import com.mojang.brigadier.suggestion.SuggestionsBuilder;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.command.CommandRegistryAccess;
-import net.minecraft.entity.player.PlayerInventory;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.registry.Registries;
-import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 
+import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.argument;
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 @Environment(EnvType.CLIENT)
 public class LotTweaksCommand implements ClientCommandRegistrationCallback {
-
-	private static void displayMessage(Text textComponent) {
-		MinecraftClient.getInstance().getMessageHandler().onGameMessage(textComponent, false);
-	}
+	private static final String[] ACTIONS = { "include", "includeAll", "exclude", "excludeAll", "retain", "retainAll" };
 
 	@Override
 	public void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
 		LiteralArgumentBuilder<FabricClientCommandSource> builder = literal(LotTweaks.MODID)
-			.then(literal("add")
-				.then(literal("1")
-					.executes(context -> {executeAdd(Group.PRIMARY); return Command.SINGLE_SUCCESS;}))
-				.then(literal("2")
-					.executes(context -> {executeAdd(Group.SECONDARY); return Command.SINGLE_SUCCESS;}))
+				.then(literal("new")
+						.then(argument("id", StringArgumentType.string())
+								.then(argument("priority", IntegerArgumentType.integer())
+										.then(argument("action", StringArgumentType.string())
+												.suggests((context, suggestions) -> suggest(List.of(ACTIONS), suggestions))
+												.executes(context -> newRotation(
+														StringArgumentType.getString(context, "id"),
+														IntegerArgumentType.getInteger(context, "priority"),
+														StringArgumentType.getString(context, "action")
+												))
+										)
+								)
+						)
 				)
-			.then(literal("reload")
-				.executes(context -> {executeReload(); return Command.SINGLE_SUCCESS;})
-			)
+				.then(literal("edit")
+						.then(argument("id", StringArgumentType.string())
+								.suggests((context, suggestions) -> suggest(RotationHelper.getRotationIds(), suggestions))
+								.then(literal("priority")
+										.then(argument("priority", IntegerArgumentType.integer())
+												.executes(context -> editRotation(
+														StringArgumentType.getString(context, "id"),
+														"priority",
+														IntegerArgumentType.getInteger(context, "priority")
+												))
+										)
+								)
+								.then(argument("action", StringArgumentType.string())
+										.suggests((context, suggestions) -> suggest(List.of(ACTIONS), suggestions))
+										.executes(context -> editRotation(
+												StringArgumentType.getString(context, "id"),
+												StringArgumentType.getString(context, "action"),
+												0
+										))
+								)
+						)
+				)
+				.then(literal("delete")
+						.then(argument("id", StringArgumentType.string())
+								.suggests((context, suggestions) -> suggest(RotationHelper.getRotationIds(), suggestions))
+								.executes(context -> deleteRotation(StringArgumentType.getString(context, "id")))
+						)
+				)
+				.then(literal("reload")
+						.executes(context -> executeReload())
+				)
 		;
 		dispatcher.register(builder);
 	}
 
-	private void executeAdd(Group group) throws LotTweaksCommandRuntimeException {
-		MinecraftClient mc = MinecraftClient.getInstance();
-		StringJoiner stringJoiner = new StringJoiner(",");
-		int count = 0;
-		for (int i = 0; i < PlayerInventory.getHotbarSize(); i++) {
-			ItemStack itemStack = mc.player.getInventory().getStack(i);
-			if (itemStack.isEmpty()) {
-				break;
-			}
-			Item item = itemStack.getItem();
-			if (item == Items.AIR) {
-				throw new LotTweaksCommandRuntimeException(String.format("Failed to get item instance. (%d)", i + 1));
-			}
-			String name = Registries.ITEM.getId(item).toString();
-			if (RotationHelper.canRotate(itemStack, group)) {
-				throw new LotTweaksCommandRuntimeException(String.format("'%s' already exists (slot %d)", name, i + 1));
-			}
-			stringJoiner.add(name);
-			count++;
+	private int newRotation(String id, int priority, String action) {
+		if (!id.endsWith(".json")) {
+			id += ".json";
 		}
-		String line = stringJoiner.toString();
-		if (line.isEmpty()) {
-			throw new LotTweaksCommandRuntimeException(String.format("Hotbar is empty."));
+
+		if (RotationHelper.getRotation(id) != null) {
+			return Command.SINGLE_SUCCESS;
 		}
-		LotTweaks.LOGGER.debug("adding a new block/item-group from /lottweaks command");
-		LotTweaks.LOGGER.debug(line);
-		boolean succeeded = RotationHelper.tryToAddItemGroupFromCommand(line, group);
-		if (succeeded) {
-			displayMessage(Text.literal(String.format("LotTweaks: added %d blocks/items", count)));
+
+		ItemRotation rotation = new ItemRotation(id, new ArrayList<>(), priority);
+		RotationHelper.ROTATE_RESULT_LIST.add(rotation);
+		editRotation(id, action, priority);
+		return Command.SINGLE_SUCCESS;
+	}
+
+	private int editRotation(String id, String action, int priority) {
+		ItemRotation rotation = RotationHelper.getRotation(id);
+		if (action.equals("priority")) {
+			rotation.setPriority(priority);
+			RotationHelper.sortRotation();
+			RotationHelper.save();
+			return Command.SINGLE_SUCCESS;
+		}
+
+		ClientPlayerEntity player = MinecraftClient.getInstance().player;
+		List<ItemStack> results = rotation.results();
+		List<ItemStack> itemStacks = switch(action) {
+			case "include", "exclude", "retain" -> List.of(player.getMainHandStack());
+			case "includeHotbar", "excludeHotbar", "retainHotbar" -> player.getInventory().main.subList(0, 9);
+			case "includeAll", "excludeAll", "retainAll" -> player.getInventory().main;
+            default -> List.of();
+		};
+
+		if (itemStacks.isEmpty()) {
+			return Command.SINGLE_SUCCESS;
+		}
+
+		itemStacks = itemStacks.stream()
+				.filter(itemStack -> !itemStack.isEmpty())
+				.map(itemStack -> itemStack.copyWithCount(1))
+				.toList();
+
+		if (action.startsWith("include")) {
+			results.addAll(itemStacks);
+			for (ItemStack itemStack : itemStacks) {
+				RotationHelper.ROTATE_RESULT.compute(ItemStack.hashCode(itemStack), (key, value) -> {
+					if (value == null) {
+						value = new ArrayList<>();
+					}
+
+					if (!value.contains(rotation)) {
+						value.add(rotation);
+					}
+					return value;
+				});
+			}
+		} else if (action.startsWith("exclude")) {
+			results.removeAll(itemStacks);
+			for (ItemStack itemStack : itemStacks) {
+				RotationHelper.ROTATE_RESULT.compute(ItemStack.hashCode(itemStack), (key, value) -> {
+					if (value == null) {
+						return null;
+					}
+
+					value.remove(rotation);
+					if (value.isEmpty()) {
+						return null;
+					}
+					return value;
+				});
+			}
 		} else {
-			displayMessage(Text.literal(Formatting.RED + "LotTweaks: failed to add blocks/items"));
+			results.retainAll(itemStacks);
+			for (ItemStack itemStack : itemStacks) {
+				RotationHelper.ROTATE_RESULT.compute(ItemStack.hashCode(itemStack), (key, value) -> {
+					if (value == null) {
+						return null;
+					}
+
+					value.remove(rotation);
+					if (value.isEmpty()) {
+						return null;
+					}
+					return value;
+				});
+			}
 		}
+		RotationHelper.save();
+		return Command.SINGLE_SUCCESS;
 	}
 
-	private void executeReload() throws LotTweaksCommandRuntimeException {
-		try {
-			boolean f;
-			f = RotationHelper.loadAllFromFile();
-			if (!f) throw new LotTweaksCommandRuntimeException("LotTweaks: failed to reload config file");
-			f = RotationHelper.loadAllItemGroupFromStrArray();
-			if (!f) throw new LotTweaksCommandRuntimeException("LotTweaks: failed to reload blocks");
-			displayMessage(Text.literal("LotTweaks: reload succeeded!"));
-		} catch (LotTweaksCommandRuntimeException e) {
-			displayMessage(Text.literal(Formatting.RED + e.getMessage()));
+	private int deleteRotation(String id) {
+		ItemRotation rotation = RotationHelper.getRotation(id);
+		if (rotation != null) {
+			RotationHelper.ROTATE_RESULT_LIST.remove(rotation);
+			for (ItemStack itemStack : rotation.results()) {
+				RotationHelper.ROTATE_RESULT.compute(ItemStack.hashCode(itemStack), (key, value) -> {
+					if (value == null) {
+						return null;
+					}
+
+					value.remove(rotation);
+					if (value.isEmpty()) {
+						return null;
+					}
+					return value;
+				});
+			}
 		}
-		com.github.lotqwerty.lottweaks.client.LotTweaks.showErrorLogToChat();
+		RotationHelper.save();
+		return Command.SINGLE_SUCCESS;
 	}
 
-	private static final class LotTweaksCommandRuntimeException extends RuntimeException {
-		public LotTweaksCommandRuntimeException(String message) {
-	        super(message);
-	    }
+	private int executeReload() {
+		RotationHelper.load();
+		return Command.SINGLE_SUCCESS;
+	}
+
+	private static CompletableFuture<Suggestions> suggest(Iterable<String> suggestions, SuggestionsBuilder builder) {
+		String remaining = builder.getRemaining();
+		for (String suggestion : suggestions) {
+			if (suggestion.startsWith(remaining)) {
+				builder.suggest(suggestion);
+			}
+		}
+		return builder.buildFuture();
 	}
 }

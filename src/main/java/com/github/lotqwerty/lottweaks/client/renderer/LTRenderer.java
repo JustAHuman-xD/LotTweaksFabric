@@ -30,16 +30,16 @@ public final class LTRenderer {
 	}
 
 	private static void circular(DrawContext context, Collection<ItemStack> stacks, int x, int y, int t, float pt, int lt, byte direction) {
-		double max_r = 20 + stacks.size() * 1.2;
-		double r = max_r * Math.tanh((t + pt) / 3);
-		double afterimage = 1 - Math.tanh((t + pt - lt)/1.5);
-		//
+		double maxR = 20 + stacks.size() * 1.2;
+		double r = maxR * Math.tanh((t + pt) / 3);
+		double afterimage = 1 - Math.tanh((t + pt - lt) / 1.5);
+
 		int i = 0;
 		for (ItemStack c: stacks) {
-			double theta = -((double)i - afterimage*direction) / stacks.size() * 2 * Math.PI + Math.PI / 2;
+			double theta = -((double) i - afterimage * direction) / stacks.size() * 2 * Math.PI + Math.PI / 2;
 			double dx = r * Math.cos(theta);
 			double dy = r * Math.sin(theta);
-			renderAndDecorateItem(context, c, (int)Math.round(x + dx), (int)Math.round(y + dy));
+			renderAndDecorateItem(context, c, (int) Math.round(x + dx - 8), (int) Math.round(y + dy - 8));
 			i++;
 		}
 	}
