@@ -13,12 +13,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.StringJoiner;
-
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 
 public class RotationHelper {
 
@@ -305,8 +304,8 @@ public class RotationHelper {
 				}
 				List<Item> items = new ArrayList<>();
 				for (String itemStr: line.split(",")) {
-					ResourceLocation resourceLocation = new ResourceLocation(itemStr);
-					Item item = BuiltInRegistries.ITEM.get(resourceLocation);
+					Identifier resourceLocation = new Identifier(itemStr);
+					Item item = Registries.ITEM.get(resourceLocation);
 					if (item == null || item == Items.AIR) {
 						warnGroupConfigErrors(String.format("'%s' is not supported.", itemStr), lineCount, group);
 						continue;

@@ -4,8 +4,8 @@
   "package": "com.github.lotqwerty.lottweaks.fabric.mixin",
   "compatibilityLevel": "JAVA_17",
   "client": [
-    "MouseHandlerMixin",
-    "HotbarRendererHook"
+    "MouseMixin",
+    "HudMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -11,27 +11,27 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 import net.fabricmc.fabric.api.client.command.v2.FabricClientCommandSource;
-import net.minecraft.ChatFormatting;
-import net.minecraft.client.Minecraft;
-import net.minecraft.commands.CommandBuildContext;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Inventory;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.command.CommandRegistryAccess;
+import net.minecraft.entity.player.PlayerInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
+import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 
 import static net.fabricmc.fabric.api.client.command.v2.ClientCommandManager.literal;
 
 @Environment(EnvType.CLIENT)
 public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 
-	private static void displayMessage(Component textComponent) {
-		Minecraft.getInstance().getChatListener().handleSystemMessage(textComponent, false);
+	private static void displayMessage(Text textComponent) {
+		MinecraftClient.getInstance().getMessageHandler().onGameMessage(textComponent, false);
 	}
 
 	@Override
-	public void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandBuildContext registryAccess) {
+	public void register(CommandDispatcher<FabricClientCommandSource> dispatcher, CommandRegistryAccess registryAccess) {
 		LiteralArgumentBuilder<FabricClientCommandSource> builder = literal(LotTweaks.MODID)
 			.then(literal("add")
 				.then(literal("1")
@@ -47,11 +47,11 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 	}
 
 	private void executeAdd(Group group) throws LotTweaksCommandRuntimeException {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		StringJoiner stringJoiner = new StringJoiner(",");
 		int count = 0;
-		for (int i = 0; i < Inventory.getSelectionSize(); i++) {
-			ItemStack itemStack = mc.player.getInventory().getItem(i);
+		for (int i = 0; i < PlayerInventory.getHotbarSize(); i++) {
+			ItemStack itemStack = mc.player.getInventory().getStack(i);
 			if (itemStack.isEmpty()) {
 				break;
 			}
@@ -59,7 +59,7 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 			if (item == Items.AIR) {
 				throw new LotTweaksCommandRuntimeException(String.format("Failed to get item instance. (%d)", i + 1));
 			}
-			String name = BuiltInRegistries.ITEM.getKey(item).toString();
+			String name = Registries.ITEM.getId(item).toString();
 			if (RotationHelper.canRotate(itemStack, group)) {
 				throw new LotTweaksCommandRuntimeException(String.format("'%s' already exists (slot %d)", name, i + 1));
 			}
@@ -74,9 +74,9 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 		LotTweaks.LOGGER.debug(line);
 		boolean succeeded = RotationHelper.tryToAddItemGroupFromCommand(line, group);
 		if (succeeded) {
-			displayMessage(Component.literal(String.format("LotTweaks: added %d blocks/items", count)));
+			displayMessage(Text.literal(String.format("LotTweaks: added %d blocks/items", count)));
 		} else {
-			displayMessage(Component.literal(ChatFormatting.RED + "LotTweaks: failed to add blocks/items"));
+			displayMessage(Text.literal(Formatting.RED + "LotTweaks: failed to add blocks/items"));
 		}
 	}
 
@@ -87,9 +87,9 @@ public class LotTweaksCommand implements ClientCommandRegistrationCallback {
 			if (!f) throw new LotTweaksCommandRuntimeException("LotTweaks: failed to reload config file");
 			f = RotationHelper.loadAllItemGroupFromStrArray();
 			if (!f) throw new LotTweaksCommandRuntimeException("LotTweaks: failed to reload blocks");
-			displayMessage(Component.literal("LotTweaks: reload succeeded!"));
+			displayMessage(Text.literal("LotTweaks: reload succeeded!"));
 		} catch (LotTweaksCommandRuntimeException e) {
-			displayMessage(Component.literal(ChatFormatting.RED + e.getMessage()));
+			displayMessage(Text.literal(Formatting.RED + e.getMessage()));
 		}
 		com.github.lotqwerty.lottweaks.client.LotTweaks.showErrorLogToChat();
 	}

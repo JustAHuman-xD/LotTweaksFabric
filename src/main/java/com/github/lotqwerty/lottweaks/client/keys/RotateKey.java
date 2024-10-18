@@ -5,14 +5,13 @@ import java.util.List;
 import com.github.lotqwerty.lottweaks.client.RotationHelper;
 import com.github.lotqwerty.lottweaks.client.RotationHelper.Group;
 import com.github.lotqwerty.lottweaks.client.renderer.LTRenderer;
-
-import com.mojang.blaze3d.platform.Window;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.util.Window;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 
 @Environment(EnvType.CLIENT)
 public class RotateKey extends ItemSelectKeyBase {
@@ -40,11 +39,11 @@ public class RotateKey extends ItemSelectKeyBase {
 		super.onKeyPressStart();
 		this.updatePhase();
 		candidates.clear();
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		if (!mc.player.isCreative()) {
 			return;
 		}
-		ItemStack itemStack = mc.player.getInventory().getSelected();
+		ItemStack itemStack = mc.player.getInventory().getMainHandStack();
 		if (itemStack.isEmpty()) {
 			return;
 		}
@@ -60,7 +59,7 @@ public class RotateKey extends ItemSelectKeyBase {
 	}
 
 	public boolean onScroll(double scrollAmount) {
-		Minecraft mc = Minecraft.getInstance();
+		MinecraftClient mc = MinecraftClient.getInstance();
 		if (this.pressTime == 0 || scrollAmount == 0 || !mc.player.isCreative()) {
 			return false;
 		}
@@ -77,22 +76,21 @@ public class RotateKey extends ItemSelectKeyBase {
 		return true;
 	}
 
-	public void onRenderHotbar(float partialTicks, GuiGraphics graphics) {
+	public void onRenderHotbar(DrawContext context, float tickDelta) {
 		if (this.pressTime == 0) {
 			candidates.clear();
 			return;
 		}
 
-		Minecraft minecraft = Minecraft.getInstance();
-		Player player = minecraft.player;
+		MinecraftClient minecraft = MinecraftClient.getInstance();
+		PlayerEntity player = minecraft.player;
 		if (!player.isCreative() || candidates.isEmpty()) {
 			return;
 		}
 
 		Window window = minecraft.getWindow();
-		int x = window.getGuiScaledWidth() / 2 - 90 + player.getInventory().selected * 20 + 2;
-		int y = window.getGuiScaledHeight() - 16 - 3 - 50 + (20 + candidates.size());
-		LTRenderer.renderItemStacks(graphics, candidates, x, y, pressTime, partialTicks, lastRotateTime, rotateDirection);
+		int x = window.getScaledWidth() / 2 - 90 + player.getInventory().selectedSlot * 20 + 2;
+		int y = window.getScaledHeight() - 16 - 3 - 50 + (20 + candidates.size());
+		LTRenderer.renderItemStacks(context, candidates, x, y, pressTime, tickDelta, lastRotateTime, rotateDirection);
 	}
-
 }
